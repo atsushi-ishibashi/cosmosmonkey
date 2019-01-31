@@ -63,7 +63,7 @@ func (s *ecsService) DrainContainerInstance(instance model.ClusterInstance) erro
 	input := &ecs.DeregisterContainerInstanceInput{
 		Cluster:           aws.String(instance.Cluster),
 		ContainerInstance: aws.String(instance.ClusterInstanceArn),
-		Force:             aws.Bool(false),
+		Force:             aws.Bool(true),
 	}
 	_, err := s.svc.DeregisterContainerInstance(input)
 	return err
