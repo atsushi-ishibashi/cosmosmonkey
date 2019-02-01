@@ -69,7 +69,7 @@ func main() {
 			log.Println("#Tasks running on instance: ", taskCount)
 		}
 
-		if int64(diff) > *maxDrainWait {
+		if int64(diff.Seconds()) > *maxDrainWait {
 			log.Println("Timeout wait for draining")
 			break
 		}
