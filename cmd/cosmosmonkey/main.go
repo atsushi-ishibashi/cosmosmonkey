@@ -57,16 +57,16 @@ func main() {
 	for {
 		time.Sleep(10 * time.Second)
 
-		status, err := ecssvc.GetContainerInstanceStatus(targetInstance)
+		taskCount, err := ecssvc.CountTasksContainerInstance(targetInstance)
 		if err != nil {
 			log.Fatal(err)
 		}
 		diff := time.Since(start)
-		if status == "INACTIVE" {
-			log.Println("Draining finished")
+		if taskCount == 0 {
+			log.Println("Tasks disappeared on instance ", *instance, ". Will deregister and terminate.")
 			break
 		} else {
-			log.Println("Container instance status: ", status, " ", diff)
+			log.Println("#Tasks running on instance: ", taskCount)
 		}
 
 		if int64(diff) > *maxDrainWait {
@@ -75,6 +75,10 @@ func main() {
 		}
 	}
 
+	if err := ecssvc.DeregisterContainerInstance(targetInstance); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Deregistered instance: ", *instance)
 	ec2svc := svc.NewEC2Service()
 	if err := ec2svc.DestroyInstance(targetInstance); err != nil {
 		log.Fatal(err)

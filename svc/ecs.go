@@ -14,6 +14,8 @@ import (
 type ECSService interface {
 	ListClusterInstances(cluster string) ([]model.ClusterInstance, error)
 	DrainContainerInstance(instance model.ClusterInstance) error
+	DeregisterContainerInstance(instance model.ClusterInstance) error
+	CountTasksContainerInstance(instance model.ClusterInstance) (int64, error)
 	GetContainerInstanceStatus(instance model.ClusterInstance) (string, error)
 }
 
@@ -60,13 +62,39 @@ func (s *ecsService) ListClusterInstances(cluster string) ([]model.ClusterInstan
 }
 
 func (s *ecsService) DrainContainerInstance(instance model.ClusterInstance) error {
+	input := &ecs.UpdateContainerInstancesStateInput{
+		Cluster:            aws.String(instance.Cluster),
+		ContainerInstances: []*string{aws.String(instance.ClusterInstanceArn)},
+		Status:             aws.String(ecs.ContainerInstanceStatusDraining),
+	}
+	_, err := s.svc.UpdateContainerInstancesState(input)
+	return err
+}
+
+func (s *ecsService) DeregisterContainerInstance(instance model.ClusterInstance) error {
 	input := &ecs.DeregisterContainerInstanceInput{
 		Cluster:           aws.String(instance.Cluster),
 		ContainerInstance: aws.String(instance.ClusterInstanceArn),
-		Force:             aws.Bool(false),
+		Force:             aws.Bool(true),
 	}
 	_, err := s.svc.DeregisterContainerInstance(input)
 	return err
+}
+
+func (s *ecsService) CountTasksContainerInstance(instance model.ClusterInstance) (int64, error) {
+	input := &ecs.DescribeContainerInstancesInput{
+		Cluster:            aws.String(instance.Cluster),
+		ContainerInstances: []*string{aws.String(instance.ClusterInstanceArn)},
+	}
+	resp, err := s.svc.DescribeContainerInstances(input)
+	if err != nil {
+		return 0, err
+	}
+	if len(resp.ContainerInstances) != 1 {
+		return 0, fmt.Errorf("expect #ContainerInstances == 1, got %d", len(resp.ContainerInstances))
+	}
+	ci := resp.ContainerInstances[0]
+	return *ci.RunningTasksCount, nil
 }
 
 func (s *ecsService) GetContainerInstanceStatus(instance model.ClusterInstance) (string, error) {
