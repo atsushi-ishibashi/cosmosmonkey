@@ -1,4 +1,6 @@
 # cosmosmonkey
+CLI to terminate EC2 instance which belongs to ECS Cluster.
+Drains cluster instance, waits for a while and terminates the instance.
 
 ## Install
 ```
